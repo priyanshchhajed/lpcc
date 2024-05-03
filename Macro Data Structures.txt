@@ -1,0 +1,73 @@
+mdtPointer = 0
+MNT = {}
+MDT = {}
+ALA = {}
+ic = []
+
+def main():
+    mstart = False
+    prev = ""
+    
+    try:
+        with open("macro_program.txt", "r") as file:
+            lines = file.readlines()
+
+            for line in lines:
+                indv = line.split()
+                if indv[0] == "MACRO":
+                    prev = indv[0]
+                    mstart = True
+                    continue
+                
+                if prev == "MACRO":
+                    MNT[indv[0]] = mdtPointer + 1
+
+                    for i in range(1, len(indv)):
+                        ALA[indv[i]] = "#" + str(i)
+
+                    prev = line.strip()
+
+                if mstart:
+                    if indv[0] not in MNT:
+                        str_line = indv[0]
+                        for i in range(1, len(indv)):
+                            if indv[i][0] == '&':
+                                str_line += (" " + ALA[indv[i]])
+                            else:
+                                str_line += " " + indv[i]
+                        MDT[mdtPointer + 1] = str_line
+                        mdtPointer += 1
+
+                if not mstart:
+                    ic.append(line.strip())
+
+                if line.strip() == "MEND":
+                    mstart = False
+                prev = line.strip()
+
+        maxMacroNameLength = max(len(macroName) for macroName in MNT.keys())
+
+        print("!!-- MDT Table --!!")
+        print("Address \t Defination")
+        for key, value in MDT.items():
+            print(f"{key} \t\t\t {value}")
+
+        print("\n!!-- MNT Table --!!")
+        print("MACRO Address")
+        for macroName, address in MNT.items():
+            spaces = " " * (maxMacroNameLength - len(macroName) + 1)
+            print(f"{macroName}{spaces}{address}")
+
+        print("\n!!-- ALA Table --!!")
+        print("Formal \t Positional")
+        for formal, positional in ALA.items():
+            print(f"{formal} \t {positional}")
+        
+        print("\n!!-- Intermediate Code --!!")
+        for line in ic:
+            print(line)
+    except IOError:
+        print("Error: Unable to read the file.")
+
+if __name__ == "__main__":
+    main()

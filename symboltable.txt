@@ -1,0 +1,58 @@
+# Importing required modules
+import re
+
+# Defining the opcode map
+opcode_map = {
+    "STOP": ["IS", "00"],
+    "ADD": ["IS", "01"],
+    "SUB": ["IS", "02"],
+    "MULTI": ["IS", "03"],
+    "MOVER": ["IS", "04"],
+    "MOVEM": ["IS", "05"],
+    "COMP": ["IS", "06"],
+    "BC": ["IS", "07"],
+    "DIV": ["IS", "08"],
+    "READ": ["IS", "09"],
+    "PRINT": ["IS", "10"],
+    "START": ["AD", "01"],
+    "END": ["AD", "02"],
+    "ORIGIN": ["AD", "03"],
+    "EQU": ["AD", "04"],
+    "LTORG": ["AD", "05"],
+    "DL": ["DL", "01"],
+    "DS": ["DL", "02"]
+}
+
+# Initializing symbol table
+symbol_table = []
+
+# Opening the file and reading its contents
+with open("program.txt", "r") as file:
+    lines = file.readlines()
+
+    # Initializing location counter and index
+    lc = 10
+    i = 1
+
+    # Iterating through each line in the file
+    for line in lines:
+        line = line.strip()
+        tokens = re.split(r'\s+', line)
+
+        # Checking for START directive
+        if len(tokens) == 1 and tokens[0] == "START":
+            lc = 0
+        elif len(tokens) == 2 and tokens[0] == "START":
+            lc = int(tokens[1])
+        elif len(tokens) >= 2 and tokens[0] not in opcode_map:
+            symbol_table.append([str(i), tokens[0], str(lc)])
+            i += 1
+            lc += 1
+        else:
+            lc += 1
+
+# Printing symbol table
+print("Symbol Table\n")
+print("Idx" + "\t" + "Symbol" + "\t" + "Address")
+for entry in symbol_table:
+    print("\t".join(entry))

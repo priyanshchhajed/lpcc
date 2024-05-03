@@ -1,0 +1,136 @@
+import re
+
+def is_numeric(s):
+    try:
+        int(s)
+        return True
+    except ValueError:
+        return False
+
+opcode_map = {
+    "STOP": ["IS", "00"],
+    "ADD": ["IS", "01"],
+    "SUB": ["IS", "02"],
+    "MULTI": ["IS", "03"],
+    "MOVER": ["IS", "04"],
+    "MOVEM": ["IS", "05"],
+    "COMP": ["IS", "06"],
+    "BC": ["IS", "07"],
+    "DIV": ["IS", "08"],
+    "READ": ["IS", "09"],
+    "PRINT": ["IS", "10"],
+    "START": ["AD", "01"],
+    "END": ["AD", "02"],
+    "ORIGIN": ["AD", "03"],
+    "EQU": ["AD", "04"],
+    "LTORG": ["AD", "05"],
+    "DL": ["DL", "01"],
+    "DS": ["DL", "02"]
+}
+
+symbol_table = []
+literal_table = []
+pool_table = []
+intermediate_code = []
+
+lc = 10
+symbol_count = 1
+literal_count = 1
+pool_count = 0
+
+code_lines = [
+    "START 101",
+    "READ X",
+    "READ Y",
+    "MOVER AREG X",
+    "ADD AREG Y",
+    "MOVEM AREG RESULT",
+    "PRINT RESULT",
+    "STOP",
+    "X DS 1",
+    "Y DS 1",
+    "RESULT DS 1",
+    "END"
+]
+
+for line in code_lines:
+    tokens = line.split()
+
+    if len(tokens) == 1:
+        if tokens[0] == "START":
+            lc = 0
+        elif tokens[0] == "END" or tokens[0] == "LTORG":
+            if pool_count > 0:
+                pool_table.append([pool_count, literal_count - 1])
+            if pool_table:
+                idx = pool_table[pool_count][1] - 1
+                for j in range(idx, len(literal_table)):
+                    literal_table[j][2] = lc
+                    lc += 1
+                pool_count += 1
+    elif len(tokens) == 2 and tokens[0] == "START":
+        lc = int(tokens[1])
+    elif tokens[0] == "ORIGIN":
+        spt = tokens[1].split("+")
+        for symbol_entry in symbol_table:
+            if symbol_entry[1] == spt[0]:
+                lc = int(symbol_entry[2]) + int(spt[1])
+                break
+    else:
+        if tokens[0] not in opcode_map:
+            if tokens[1] == "EQU":
+                temp = 0
+                for symbol_entry in symbol_table:
+                    if symbol_entry[1] == tokens[2]:
+                        temp = int(symbol_entry[2])
+                        break
+                symbol_table.append([str(symbol_count), tokens[0], str(temp)])
+                symbol_count += 1
+            else:
+                symbol_table.append([str(symbol_count), tokens[0], str(lc)])
+                symbol_count += 1
+        if tokens[-1][0] == '=':
+            if literal_count == 1:
+                pool_table.append([1, 1])
+            literal_table.append([str(literal_count), tokens[-1], str(-1)])
+            literal_count += 1
+        if tokens[1] == "DS":
+            lc += int(tokens[2])
+        else:
+            lc += 1
+
+    line = ""
+    for token in tokens:
+        if token in opcode_map:
+            line += f"({opcode_map[token][0]}, {opcode_map[token][1]}) "
+        elif is_numeric(token):
+            line += f"(C, {int(token)}) "
+        elif token[0] == '=':
+            for literal_entry in literal_table:
+                if literal_entry[1] == token:
+                    line += f"(L, {literal_entry[0]}) "
+                    break
+        elif token not in opcode_map and tokens.index(token) == 0:
+            line += ""
+        elif token == "ORIGIN" or token == "EQU":
+            line = ""
+        else:
+            line += f"{token} "
+    intermediate_code.append(line.strip())
+
+print("Symbol Table\n")
+print("Idx" + "\t" + "Symbol" + "\t" + "Address")
+for entry in symbol_table:
+    print("\t".join(entry))
+
+print("\n\nLiteral Table\n")
+print("Idx" + "\t" + "Literal" + "\t" + "Address")
+for entry in literal_table:
+    print("\t".join(entry))
+
+print("\n\nPool Table\n")
+for entry in pool_table:
+    print("\t".join(map(str, entry)))
+
+print("\n\n\n Intermediate Code")
+print("\n".join(intermediate_code))
